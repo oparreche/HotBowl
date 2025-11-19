@@ -9,9 +9,9 @@ export async function GET(request: NextRequest) {
     var d = document;
     var c = d.createElement('div');
     c.style.position='fixed'; c.style.bottom='24px'; c.style.right='24px';
-    c.style.zIndex='2147483647'; c.style.width='360px'; c.style.maxWidth='90vw';
+    c.style.zIndex='2147483647'; c.style.width='360px'; c.style.maxWidth='100vw';
     var defH = Math.min(Math.max(Math.floor(window.innerHeight * 0.8), 420), 720);
-    c.style.height= defH + 'px'; c.style.maxHeight='90vh'; c.style.boxShadow='0 8px 24px rgba(0,0,0,0.24)';
+    c.style.height= '280px'; c.style.maxHeight='90vh'; c.style.boxShadow='0 8px 24px rgba(0,0,0,0.24)';
     c.style.borderRadius='12px'; c.style.overflow='hidden'; c.style.background='#fff';
     var f = d.createElement('iframe');
     f.src='${origin}/widget?siteId=${encodeURIComponent(siteId)}&surveyId=${encodeURIComponent(surveyId)}';
