@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import mysql from 'mysql2/promise';
@@ -6,8 +7,9 @@ const root = process.cwd();
 const sqlPath = path.join(root, 'db', 'init.sql');
 
 async function main() {
-  const { DB_HOST = '127.0.0.1', DB_PORT = '3333', DB_USER = 'hotbowl', DB_PASS = 'hotbowl', DB_NAME = 'hotbowl' } = process.env;
+  const { DB_HOST = '92.113.32.80', DB_PORT = '3333', DB_USER = 'hotbowl', DB_PASS = 'hotbowl9168$1', DB_NAME = 'hotbowl' } = process.env;
   const sql = fs.readFileSync(sqlPath, 'utf8');
+  console.log('Connecting to MySQL:', { host: DB_HOST, port: Number(DB_PORT), user: DB_USER, database: DB_NAME });
   const conn = await mysql.createConnection({
     host: DB_HOST,
     port: Number(DB_PORT),

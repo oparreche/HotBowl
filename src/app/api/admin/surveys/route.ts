@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { pool } from "@/lib/db";
 import type { Question } from "@/lib/types";
 import type { RowDataPacket } from "mysql2";
+import { validateSurveyInput } from "@/lib/validate";
 
 export async function GET(request: NextRequest) {
   const siteId = request.nextUrl.searchParams.get("siteId") || "";
@@ -82,13 +83,17 @@ export async function POST(request: NextRequest) {
   const siteId = body?.siteId ?? "";
   const title = body?.title ?? "";
   const questions = body?.questions ?? [];
-  if (!siteId || !title || !Array.isArray(questions)) return new Response("invalid", { status: 400 });
+  const issues = validateSurveyInput(siteId, title, questions);
+  if (issues.length) {
+    return new Response(JSON.stringify({ error: "invalid_input", message: "Erros de validação", issues }), { status: 400, headers: { "Content-Type": "application/json" } });
+  }
   const id = crypto.randomUUID();
   try {
     await pool.query("INSERT INTO surveys (id, site_id, title, questions, is_active) VALUES (?, ?, ?, ?, 1)", [id, siteId, title, JSON.stringify(questions)]);
     return new Response(JSON.stringify({ id }), { status: 201, headers: { "Content-Type": "application/json" } });
-  } catch {
-    return new Response(JSON.stringify({ error: "db_error" }), { status: 500, headers: { "Content-Type": "application/json" } });
+  } catch (e: unknown) {
+    const msg = typeof e === "object" && e && (e as { message?: string }).message ? String((e as { message?: string }).message) : "Falha ao inserir survey.";
+    return new Response(JSON.stringify({ error: "db_error", message: msg }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
 
@@ -97,11 +102,13 @@ export async function PATCH(request: NextRequest) {
   const body = bodyUnknown as Partial<{ id: string; isActive: boolean }> | null;
   const id = body?.id ?? "";
   const isActive = body?.isActive;
-  if (!id || typeof isActive !== "boolean") return new Response("invalid", { status: 400 });
+  if (!id || typeof isActive !== "boolean") {
+    return new Response(JSON.stringify({ error: "invalid_input", message: "Informe id e isActive (boolean)." }), { status: 400, headers: { "Content-Type": "application/json" } });
+  }
   try {
     await pool.query("UPDATE surveys SET is_active = ? WHERE id = ?", [isActive ? 1 : 0, id]);
     return new Response(null, { status: 204 });
   } catch {
-    return new Response(JSON.stringify({ error: "db_error" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "db_error", message: "Falha ao atualizar survey." }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }

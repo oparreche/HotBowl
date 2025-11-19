@@ -66,7 +66,11 @@ export default function AdminSurveys() {
     }
     const res = await fetch("/api/admin/surveys", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ siteId: payloadSiteId, title, questions }) });
     if (!res.ok) {
-      alert("Falha ao criar survey. Verifique o banco de dados.");
+      const isJson = res.headers.get("content-type")?.includes("application/json");
+      const payload = isJson ? await res.json().catch(() => null) : null;
+      const msg = (payload && typeof payload === "object" && (payload as { message?: string }).message) || "Falha ao criar survey.";
+      const issues = (payload && typeof payload === "object" && (payload as { issues?: { path: string; message: string }[] }).issues) || [] as { path: string; message: string }[];
+      setJsonError([msg, ...issues.map((i: { path: string; message: string }) => `${i.path}: ${i.message}`)].join("\n"));
       return;
     }
     // const isJson = res.headers.get("content-type")?.includes("application/json");
