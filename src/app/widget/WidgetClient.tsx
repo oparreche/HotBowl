@@ -46,7 +46,7 @@ export default function WidgetClient({ survey, siteId, surveyId }: Props) {
               <div style={{ width: `${progress}%`, height: 4, background: "#3b82f6", borderRadius: 8 }} />
             </div>
           </div>
-          <button onClick={() => setOpen(false)} aria-label="Fechar" title="Fechar" style={{ border: 0, background: "transparent", cursor: "pointer", fontSize: 18 }}>×</button>
+          <button onClick={() => { setOpen(false); try { window.parent.postMessage({ type: 'HB_EMBED', action: 'REMOVE' }, '*'); } catch { /* noop */ } }} aria-label="Fechar" title="Fechar" style={{ border: 0, background: "transparent", cursor: "pointer", fontSize: 18 }}>×</button>
         </div>
         <div style={{ marginTop: 16 }}>
           <label style={{ display: "block", marginBottom: 6 }}>{q.prompt}</label>

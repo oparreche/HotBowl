@@ -30,8 +30,20 @@ async function getSurvey(siteId: string, surveyId: string): Promise<Survey | nul
 export default async function Widget({ searchParams }: Props) {
   const siteId = searchParams.siteId || "";
   const surveyId = searchParams.surveyId || "";
-  if (!siteId || !surveyId) return null;
+  if (!siteId || !surveyId) {
+    return (
+      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+        <div style={{ padding: 16, color: "#444", fontSize: 14 }}>Survey não configurada corretamente.</div>
+      </div>
+    );
+  }
   const survey = await getSurvey(siteId, surveyId);
-  if (!survey) return null;
+  if (!survey) {
+    return (
+      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+        <div style={{ padding: 16, color: "#444", fontSize: 14 }}>Survey não encontrada ou inativa.</div>
+      </div>
+    );
+  }
   return <WidgetClient survey={survey} siteId={siteId} surveyId={surveyId} />;
 }
