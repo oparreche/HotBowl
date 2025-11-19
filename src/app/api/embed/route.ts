@@ -31,14 +31,7 @@ export async function GET(request: NextRequest) {
         }
       } catch {}
     }
-    function onResize(){
-      try {
-        var maxH = Math.floor(window.innerHeight * 0.9);
-        c.style.height = '280px';
-      } catch {}
-    }
     window.addEventListener('message', handleMessage);
-    window.addEventListener('resize', onResize);
   })();`;
   return new Response(js, {
     status: 200,
