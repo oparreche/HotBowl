@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
           c.style.height = h + 'px';
         }
       } catch {}
-    } 
+    }
     function onResize(){
       try {
         var maxH = Math.floor(window.innerHeight * 0.9);
