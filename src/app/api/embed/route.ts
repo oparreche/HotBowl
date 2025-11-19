@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
     var c = d.createElement('div');
     c.style.position='fixed'; c.style.bottom='24px'; c.style.right='24px';
     c.style.zIndex='2147483647'; c.style.width='360px'; c.style.maxWidth='100vw';
-    var defH = Math.min(Math.max(Math.floor(window.innerHeight * 0.8), 420), 720);
     c.style.height= '280px'; c.style.maxHeight='90vh'; c.style.boxShadow='0 8px 24px rgba(0,0,0,0.24)';
     c.style.borderRadius='12px'; c.style.overflow='hidden'; c.style.background='#fff';
     var f = d.createElement('iframe');
@@ -35,7 +34,7 @@ export async function GET(request: NextRequest) {
     function onResize(){
       try {
         var maxH = Math.floor(window.innerHeight * 0.9);
-        var cur = parseInt(c.style.height||'0', 10) || defH;
+        var cur = parseInt(c.style.height||'0', 10) || 280;
         c.style.height = Math.min(cur, maxH) + 'px';
       } catch {}
     }
