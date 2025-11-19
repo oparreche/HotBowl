@@ -26,8 +26,7 @@ export async function GET(request: NextRequest) {
           window.removeEventListener('message', handleMessage);
         } else if (data.action==='HEIGHT') {
           var maxH = Math.floor(window.innerHeight * 0.9);
-          var h = Math.max(360, Math.min(Number(data.height||0), maxH));
-          c.style.height = h + 'px';
+          c.style.height = '280px';
         }
       } catch {}
     }
