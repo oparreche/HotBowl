@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     c.style.borderRadius='12px'; c.style.overflow='hidden'; c.style.background='#fff';
     var f = d.createElement('iframe');
     f.src='${origin}/widget?siteId=${encodeURIComponent(siteId)}&surveyId=${encodeURIComponent(surveyId)}';
-    f.style.width='100%'; f.style.height='100%'; f.style.border='0';
+    f.style.width='100%'; f.style.height='280px'; f.style.border='0'; f.style.overflow='none';
     f.setAttribute('title','Survey'); f.setAttribute('loading','eager');
     c.appendChild(f); d.body.appendChild(c);
     function handleMessage(e){
