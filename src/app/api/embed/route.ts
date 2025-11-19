@@ -34,8 +34,7 @@ export async function GET(request: NextRequest) {
     function onResize(){
       try {
         var maxH = Math.floor(window.innerHeight * 0.9);
-        var cur = parseInt(c.style.height||'0', 10) || 280;
-        c.style.height = Math.min(cur, maxH) + 'px';
+        c.style.height = '280px';
       } catch {}
     }
     window.addEventListener('message', handleMessage);
