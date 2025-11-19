@@ -6,6 +6,11 @@ type Props = { survey: Survey; siteId: string; surveyId: string };
 
 export default function WidgetClient({ survey, siteId, surveyId }: Props) {
   const [open, setOpen] = useState(true);
+  useEffect(() => {
+    const el = document.documentElement;
+    const h = Math.min(680, Math.max(480, el.clientHeight - 120));
+    try { window.parent.postMessage({ type: 'HB_EMBED', action: 'HEIGHT', height: h }, '*'); } catch { /* noop */ }
+  }, []);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const q = survey.questions[step];
