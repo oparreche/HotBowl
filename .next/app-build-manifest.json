@@ -1,19 +1,19 @@
 {
   "pages": {
-    "/admin/surveys/page": [
+    "/admin/surveys/new/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/surveys/page.js"
+      "static/chunks/app/admin/surveys/new/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/layout.js"
     ],
-    "/_not-found/page": [
+    "/admin/surveys/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/admin/surveys/page.js"
     ]
   }
 }

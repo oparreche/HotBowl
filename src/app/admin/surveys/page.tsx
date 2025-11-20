@@ -100,7 +100,7 @@ export default function AdminSurveys() {
     <div style={{ padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ margin: 0 }}>SurveyHub</h1>
-        <button onClick={() => { setNewSiteId(debouncedSiteId || siteId); setOpenModal(true); }} style={{ padding: "10px 16px", borderRadius: 8, border: 0, background: "linear-gradient(135deg,#06b6d4,#10b981)", color: "#fff", cursor: "pointer" }}>+ Criar Survey</button>
+        <button onClick={() => { window.location.href = "/admin/surveys/new"; }} style={{ padding: "10px 16px", borderRadius: 8, border: 0, background: "linear-gradient(135deg,#06b6d4,#10b981)", color: "#fff", cursor: "pointer" }}>+ Criar Survey</button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, marginTop: 16 }}>
         <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: 16, boxShadow: "0 6px 18px rgba(0,0,0,0.05)" }}>
@@ -150,8 +150,14 @@ export default function AdminSurveys() {
                 <span>{(s.responses || 0)} responses</span>
                 <span>{(s.views || 0)} views</span>
               </div>
-              <div style={{ marginTop: 10, fontSize: 12 }}>
-                Script: <code>{`<script src="${origin}/api/embed?siteId=${s.siteId}&surveyId=${s.id}" async></script>`}</code>
+              <div style={{ marginTop: 12 }}>
+                <EmbedSnippet
+                  label="HTML"
+                  code={`<script src="${origin}/api/embed?siteId=${s.siteId}&surveyId=${s.id}" async></script>`}
+                />
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <a href={`/admin/responses?surveyId=${s.id}&siteId=${s.siteId}`} style={{ fontSize: 12, color: "#2563eb", textDecoration: "none" }}>Ver respostas »</a>
               </div>
             </li>
           ))}
@@ -282,6 +288,19 @@ function CreateSurveyModal({ onClose, newSiteId, setNewSiteId, title, setTitle, 
           <button onClick={() => onSubmit()} style={{ padding: "10px 16px", borderRadius: 10, border: 0, background: "#111", color: "#fff", cursor: "pointer", transition: "opacity 150ms ease, transform 100ms ease" }} onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")} onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")} onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")} onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}>Criar</button>
         </div>
       </div>
+    </div>
+  );
+}
+type EmbedSnippetProps = { label?: string; code: string };
+function EmbedSnippet({ label = "HTML", code }: EmbedSnippetProps) {
+  const copy = async () => { try { await navigator.clipboard.writeText(code); } catch { /* noop */ } };
+  return (
+    <div style={{ background: "#0f172a", color: "#e5e7eb", borderRadius: 10, overflow: "hidden", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)", border: "1px solid #0b1220" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid #0b1220" }}>
+        <span style={{ fontSize: 12, color: "#cbd5e1" }}>{label}</span>
+        <button onClick={copy} style={{ border: 0, background: "#334155", color: "#e5e7eb", fontSize: 12, padding: "6px 10px", borderRadius: 8, cursor: "pointer", transition: "opacity 150ms ease, transform 100ms ease" }} onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")} onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")} onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")} onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}>Copiar</button>
+      </div>
+      <pre style={{ margin: 0, padding: 12, fontFamily: "monospace", fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{code}</pre>
     </div>
   );
 }
