@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { validateSurveyInput } from "@/lib/validate";
 import type { Question } from "@/lib/types";
 
 type Survey = { id: string; siteId: string; title: string; isActive: boolean; questions: Question[]; responses?: number; views?: number };
@@ -17,6 +18,7 @@ export default function AdminSurveys() {
   const [openModal, setOpenModal] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [newSiteId, setNewSiteId] = useState("");
+  const [issues, setIssues] = useState<{ path: string; message: string }[]>([]);
   const origin = useMemo(() => (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"), []);
 
   // Debounce do siteId para evitar múltiplos requests por caractere
@@ -47,6 +49,7 @@ export default function AdminSurveys() {
 
   async function createSurvey() {
     setJsonError(null);
+    setIssues([]);
     let questions: Question[] = [];
     try {
       questions = JSON.parse(questionsJson) as Question[];
@@ -62,6 +65,12 @@ export default function AdminSurveys() {
     }
     if (!title.trim()) {
       setJsonError("Informe o título da survey.");
+      return;
+    }
+    const localIssues = validateSurveyInput(payloadSiteId, title.trim(), questions);
+    if (localIssues.length) {
+      setIssues(localIssues);
+      setJsonError(["Corrija os campos abaixo:", ...localIssues.map((i) => `${i.path}: ${i.message}`)].join("\n"));
       return;
     }
     const res = await fetch("/api/admin/surveys", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ siteId: payloadSiteId, title, questions }) });
@@ -155,25 +164,19 @@ export default function AdminSurveys() {
       </div>
 
       {openModal && (
-        <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "grid", placeItems: "center", zIndex: 10000 }}>
-          <div style={{ width: "min(720px, 92vw)", background: "#fff", borderRadius: 12, padding: 16, boxShadow: "0 10px 24px rgba(0,0,0,0.25)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ margin: 0 }}>Criar Survey</h2>
-              <button onClick={() => setOpenModal(false)} style={{ border: 0, background: "transparent", fontSize: 20, cursor: "pointer" }}>×</button>
-            </div>
-            <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
-              <input placeholder="Site ID" value={newSiteId} onChange={(e) => setNewSiteId(e.target.value)} style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd" }} />
-              <input placeholder="Título" value={title} onChange={(e) => setTitle(e.target.value)} style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd" }} />
-              <textarea placeholder="Questions JSON" value={questionsJson} onChange={(e) => setQuestionsJson(e.target.value)} rows={10} style={{ padding: 8, borderRadius: 8, border: "1px solid #ddd", fontFamily: "monospace" }} />
-              {jsonError && <div style={{ color: "#b91c1c", fontSize: 12 }}>{jsonError}</div>}
-              <FieldTypesHelp />
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                <button onClick={() => setOpenModal(false)} style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer" }}>Cancelar</button>
-                <button onClick={createSurvey} style={{ padding: "10px 16px", borderRadius: 8, border: 0, background: "#111", color: "#fff", cursor: "pointer" }}>Criar</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CreateSurveyModal
+          open
+          onClose={() => setOpenModal(false)}
+          newSiteId={newSiteId}
+          setNewSiteId={setNewSiteId}
+          title={title}
+          setTitle={setTitle}
+          questionsJson={questionsJson}
+          setQuestionsJson={setQuestionsJson}
+          jsonError={jsonError}
+          issues={issues}
+          onSubmit={createSurvey}
+        />
       )}
     </div>
   );
@@ -187,7 +190,7 @@ function FieldTypesHelp() {
   {"id":"q4","type":"textarea","prompt":"Sugestões"}
 ]`;
   return (
-    <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
+    <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, overflowX: "hidden" }}>
       <div style={{ fontWeight: 600, marginBottom: 6 }}>Tipos de campos suportados</div>
       <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
         <li><strong>text</strong>: campo de texto curto</li>
@@ -196,7 +199,89 @@ function FieldTypesHelp() {
         <li><strong>radio</strong>: múltipla escolha única com <code>options</code></li>
       </ul>
       <div style={{ marginTop: 8, fontSize: 12 }}>Exemplo:</div>
-      <pre style={{ marginTop: 6, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: 8, overflow: "auto" }}>{example}</pre>
+      <pre style={{ marginTop: 6, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: 8, overflowX: "hidden", overflowY: "auto", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{example}</pre>
+    </div>
+  );
+}
+
+type CreateSurveyModalProps = {
+  open: boolean;
+  onClose: () => void;
+  newSiteId: string;
+  setNewSiteId: (v: string) => void;
+  title: string;
+  setTitle: (v: string) => void;
+  questionsJson: string;
+  setQuestionsJson: (v: string) => void;
+  jsonError: string | null;
+  issues: { path: string; message: string }[];
+  onSubmit: () => void | Promise<void>;
+};
+
+function CreateSurveyModal({ onClose, newSiteId, setNewSiteId, title, setTitle, questionsJson, setQuestionsJson, jsonError, issues, onSubmit }: CreateSurveyModalProps) {
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const siteRef = useRef<HTMLInputElement | null>(null);
+  const [closing, setClosing] = useState(false);
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { setClosing(true); setTimeout(onClose, 300); } };
+    document.addEventListener("keydown", esc);
+    const focusables = () => Array.from(dialogRef.current?.querySelectorAll<HTMLElement>("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])") || []);
+    const trap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const f = focusables();
+      if (!f.length) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey) {
+        if (active === first || !dialogRef.current?.contains(active)) { last.focus(); e.preventDefault(); }
+      } else {
+        if (active === last || !dialogRef.current?.contains(active)) { first.focus(); e.preventDefault(); }
+      }
+    };
+    document.addEventListener("keydown", trap);
+    const t = setTimeout(() => { siteRef.current?.focus(); }, 0);
+    return () => { document.removeEventListener("keydown", esc); document.removeEventListener("keydown", trap); clearTimeout(t); };
+  }, [onClose]);
+  const insertExample = () => setQuestionsJson("[\n  {\"id\":\"q1\",\"type\":\"text\",\"prompt\":\"Qual sua opinião?\"},\n  {\"id\":\"q2\",\"type\":\"select\",\"prompt\":\"Como nos conheceu?\",\"options\":[\"Google\",\"Amigo\",\"Redes sociais\"]}\n]");
+  const handleClose = () => { setClosing(true); setTimeout(onClose, 300); };
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => { if (e.target === overlayRef.current) handleClose(); };
+  return (
+    <div ref={overlayRef} onClick={handleOverlayClick} role="dialog" aria-modal="true" aria-label="Criar Survey" style={{ position: "fixed", inset: 0, background: closing ? "rgba(0,0,0,0)" : "rgba(0,0,0,0.5)", display: "grid", placeItems: "center", zIndex: 10000, transition: "background 300ms ease" }}>
+      <div ref={dialogRef} style={{ width: "min(640px, 92vw)", maxHeight: "90vh", background: "#fff", color: "#111", borderRadius: 16, boxShadow: "0 16px 38px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", opacity: closing ? 0 : 1, transform: `translateY(${closing ? 10 : 0}px)`, transition: "opacity 300ms ease, transform 300ms ease" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 20, borderBottom: "1px solid #eee" }}>
+          <h2 style={{ margin: 0, fontSize: 20 }}>Criar Survey</h2>
+          <button onClick={handleClose} aria-label="Fechar" style={{ border: 0, background: "transparent", cursor: "pointer", width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", transition: "background 150ms ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#f2f4f7")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>×</button>
+        </div>
+        <div style={{ padding: 20, overflowY: "auto", overflowX: "hidden" }}>
+          <div style={{ display: "grid", gap: 14 }}>
+            <div>
+              <label style={{ display: "block", fontSize: 12, color: "#3f3f46", marginBottom: 6 }}>Site ID</label>
+              <input ref={siteRef} placeholder="ex: meusite.com" value={newSiteId} onChange={(e) => setNewSiteId(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: 12, borderRadius: 10, border: `1px solid ${issues.some((i) => i.path === "siteId") ? "#ef4444" : "#d1d5db"}`, outline: "none", transition: "border-color 150ms ease" }} />
+              {issues.filter((i) => i.path === "siteId").map((i, idx) => (<div key={idx} style={{ color: "#b91c1c", fontSize: 12, marginTop: 4 }}>{i.message}</div>))}
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 12, color: "#3f3f46", marginBottom: 6 }}>Título</label>
+              <input placeholder="ex: Pesquisa de satisfação" value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: 12, borderRadius: 10, border: `1px solid ${issues.some((i) => i.path === "title") ? "#ef4444" : "#d1d5db"}`, outline: "none", transition: "border-color 150ms ease" }} />
+              {issues.filter((i) => i.path === "title").map((i, idx) => (<div key={idx} style={{ color: "#b91c1c", fontSize: 12, marginTop: 4 }}>{i.message}</div>))}
+            </div>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <label style={{ display: "block", fontSize: 12, color: "#3f3f46", marginBottom: 6 }}>Questions JSON</label>
+                <button onClick={insertExample} style={{ border: "1px solid #d1d5db", background: "#fff", color: "#111", borderRadius: 10, padding: "6px 10px", cursor: "pointer", fontSize: 12, transition: "background 150ms ease, transform 100ms ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")} onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")} onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")} onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}>Inserir exemplo</button>
+              </div>
+              <textarea placeholder="Cole aqui o array de perguntas" value={questionsJson} onChange={(e) => setQuestionsJson(e.target.value)} rows={8} wrap="soft" style={{ width: "100%", boxSizing: "border-box", padding: 12, borderRadius: 10, border: `1px solid ${issues.some((i) => i.path.startsWith("questions")) ? "#ef4444" : "#d1d5db"}`, fontFamily: "monospace", outline: "none", transition: "border-color 150ms ease", overflowX: "hidden" }} />
+              {jsonError && <div style={{ color: "#b91c1c", fontSize: 12, marginTop: 4, whiteSpace: "pre-wrap" }}>{jsonError}</div>}
+            </div>
+            <FieldTypesHelp />
+          </div>
+        </div>
+        <div style={{ padding: 20, borderTop: "1px solid #eee", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <button onClick={handleClose} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid #d1d5db", background: "#fff", color: "#111", cursor: "pointer", transition: "background 150ms ease, transform 100ms ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")} onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")} onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")} onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}>Cancelar</button>
+          <button onClick={() => onSubmit()} style={{ padding: "10px 16px", borderRadius: 10, border: 0, background: "#111", color: "#fff", cursor: "pointer", transition: "opacity 150ms ease, transform 100ms ease" }} onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")} onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")} onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")} onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}>Criar</button>
+        </div>
+      </div>
     </div>
   );
 }
