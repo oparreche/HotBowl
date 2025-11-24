@@ -7,6 +7,7 @@ type Survey = { id: string; siteId: string; title: string; isActive: boolean; qu
 type SurveyPage = { items: Survey[]; page: number; pageSize: number; total: number };
 
 export default function AdminSurveys() {
+  const [tokenChecked, setTokenChecked] = useState(false);
   const [siteId, setSiteId] = useState("");
   const [debouncedSiteId, setDebouncedSiteId] = useState("");
   const [list, setList] = useState<Survey[]>([]);
@@ -28,19 +29,28 @@ export default function AdminSurveys() {
   }, [siteId]);
 
   useEffect(() => {
+    const t = typeof window !== "undefined" ? localStorage.getItem("hb_token") : null;
+    setTokenChecked(true);
+    if (!t && typeof window !== "undefined") {
+      // sem token, envia para login
+      window.location.href = "/login";
+    }
     const ctrl = new AbortController();
-    const urlBase = debouncedSiteId ? `/api/admin/surveys?siteId=${encodeURIComponent(debouncedSiteId)}` : "/api/admin/surveys";
-    const url = `${urlBase}${urlBase.includes("?") ? "&" : "?"}page=${page}&pageSize=${pageSize}`;
-    fetch(url, { cache: "no-store", signal: ctrl.signal })
-      .then(async (r) => (r.ok && r.headers.get("content-type")?.includes("application/json")) ? r.json() : { items: [], total: 0, page: 1, pageSize })
-      .then((data: SurveyPage) => { setList(Array.isArray(data.items) ? data.items : []); setTotal(Number(data.total || 0)); })
-      .catch(() => setList([]));
+    if (t) {
+      const urlBase = debouncedSiteId ? `/api/admin/surveys?siteId=${encodeURIComponent(debouncedSiteId)}` : "/api/admin/surveys";
+      const url = `${urlBase}${urlBase.includes("?") ? "&" : "?"}page=${page}&pageSize=${pageSize}`;
+      fetch(url, { cache: "no-store", signal: ctrl.signal, headers: { Authorization: `Bearer ${t}` } })
+        .then(async (r) => (r.ok && r.headers.get("content-type")?.includes("application/json")) ? r.json() : { items: [], total: 0, page: 1, pageSize })
+        .then((data: SurveyPage) => { setList(Array.isArray(data.items) ? data.items : []); setTotal(Number(data.total || 0)); })
+        .catch(() => setList([]));
+    }
     return () => ctrl.abort();
   }, [debouncedSiteId, page, pageSize]);
 
   async function reload() {
     const url = debouncedSiteId ? `/api/admin/surveys?siteId=${encodeURIComponent(debouncedSiteId)}` : "/api/admin/surveys";
-    const r = await fetch(`${url}${url.includes("?") ? "&" : "?"}page=${page}&pageSize=${pageSize}`, { cache: "no-store" });
+    const t = typeof window !== "undefined" ? localStorage.getItem("hb_token") : null;
+    const r = await fetch(`${url}${url.includes("?") ? "&" : "?"}page=${page}&pageSize=${pageSize}`, { cache: "no-store", headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}) } });
     const isJson = r.ok && r.headers.get("content-type")?.includes("application/json");
     const data: SurveyPage = isJson ? await r.json().catch(() => ({ items: [], total: 0, page: 1, pageSize })) : { items: [], total: 0, page: 1, pageSize };
     setList(Array.isArray(data.items) ? data.items : []);
@@ -73,7 +83,8 @@ export default function AdminSurveys() {
       setJsonError(["Corrija os campos abaixo:", ...localIssues.map((i) => `${i.path}: ${i.message}`)].join("\n"));
       return;
     }
-    const res = await fetch("/api/admin/surveys", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ siteId: payloadSiteId, title, questions }) });
+    const t = typeof window !== "undefined" ? localStorage.getItem("hb_token") : null;
+    const res = await fetch("/api/admin/surveys", { method: "POST", headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }, body: JSON.stringify({ siteId: payloadSiteId, title, questions }) });
     if (!res.ok) {
       const isJson = res.headers.get("content-type")?.includes("application/json");
       const payload = isJson ? await res.json().catch(() => null) : null;
@@ -92,10 +103,12 @@ export default function AdminSurveys() {
   }
 
   async function toggleActive(id: string, isActive: boolean) {
-    const res = await fetch("/api/admin/surveys", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, isActive }) });
+    const t = typeof window !== "undefined" ? localStorage.getItem("hb_token") : null;
+    const res = await fetch("/api/admin/surveys", { method: "PATCH", headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }, body: JSON.stringify({ id, isActive }) });
     if (res.ok || res.status === 204) setList(list.map((s) => (s.id === id ? { ...s, isActive } : s)));
   }
 
+  if (!tokenChecked) return <div style={{ padding: 24 }}>Carregando...</div>;
   return (
     <div style={{ padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

@@ -5,4 +5,5 @@ export const env = {
   DB_PASS: process.env.DB_PASS || "hotbowl9168$1",
   DB_NAME: process.env.DB_NAME || "hotbowl",
   APP_URL: process.env.APP_URL || "https://hot-bowl-mu.vercel.app",
+  AUTH_SECRET: process.env.AUTH_SECRET || "hotbowl_secret",
 };

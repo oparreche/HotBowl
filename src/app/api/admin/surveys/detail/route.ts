@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { pool } from "@/lib/db";
 import type { RowDataPacket } from "mysql2";
 import type { Question } from "@/lib/types";
+import { verifyJwt } from "@/lib/auth";
+import { env } from "@/lib/env";
 
 export async function GET(request: NextRequest) {
   const surveyId = request.nextUrl.searchParams.get("surveyId") || "";
@@ -10,8 +12,21 @@ export async function GET(request: NextRequest) {
     return new Response(JSON.stringify({ error: "invalid_input", message: "Informe surveyId." }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
   try {
-    const where = siteId ? "WHERE id = ? AND site_id = ?" : "WHERE id = ?";
-    const params = siteId ? [surveyId, siteId] : [surveyId];
+    const auth = request.headers.get("authorization") || "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+    const { valid, payload } = verifyJwt(token, env.AUTH_SECRET);
+    const userId = valid && typeof payload?.sub === "string" ? (payload!.sub as string) : "";
+    const [cols] = await pool.query<RowDataPacket[]>("SHOW COLUMNS FROM surveys LIKE 'user_id'");
+    const hasUser = Array.isArray(cols) && cols.length > 0;
+    const filters: string[] = [];
+    const params: (string | number)[] = [];
+    filters.push("id = ?"); params.push(surveyId);
+    if (siteId) { filters.push("site_id = ?"); params.push(siteId); }
+    if (hasUser) {
+      if (!userId) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+      filters.push("user_id = ?"); params.push(userId);
+    }
+    const where = `WHERE ${filters.join(" AND ")}`;
     const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT id, site_id, title, questions FROM surveys ${where} LIMIT 1`,
       params

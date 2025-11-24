@@ -6,6 +6,7 @@ type RespPage = { items: Resp[]; page: number; pageSize: number; total: number }
 type SurveyDetail = { id: string; siteId: string; title: string; questions: { id: string; prompt: string }[] };
 
 export default function AdminResponses() {
+  const [tokenChecked, setTokenChecked] = useState(false);
   const params = useMemo(() => {
     if (typeof window === "undefined") return new URLSearchParams();
     return new URLSearchParams(window.location.search);
@@ -21,16 +22,21 @@ export default function AdminResponses() {
   const [detail, setDetail] = useState<SurveyDetail | null>(null);
 
   useEffect(() => {
+    const t = typeof window !== "undefined" ? localStorage.getItem("hb_token") : null;
+    setTokenChecked(true);
+    if (!t && typeof window !== "undefined") window.location.href = "/login";
     const ctrl = new AbortController();
     const qs = new URLSearchParams();
     if (surveyId) qs.set("surveyId", surveyId);
     if (siteId) qs.set("siteId", siteId);
     qs.set("page", String(page));
     qs.set("pageSize", String(pageSize));
-    fetch(`/api/admin/responses?${qs.toString()}`, { cache: "no-store", signal: ctrl.signal })
-      .then(async (r) => (r.ok && r.headers.get("content-type")?.includes("application/json")) ? r.json() : { items: [], total: 0, page: 1, pageSize })
-      .then((data: RespPage) => { setItems(Array.isArray(data.items) ? data.items : []); setTotal(Number(data.total || 0)); })
-      .catch(() => setItems([]));
+    if (t) {
+      fetch(`/api/admin/responses?${qs.toString()}`, { cache: "no-store", signal: ctrl.signal, headers: { Authorization: `Bearer ${t}` } })
+        .then(async (r) => (r.ok && r.headers.get("content-type")?.includes("application/json")) ? r.json() : { items: [], total: 0, page: 1, pageSize })
+        .then((data: RespPage) => { setItems(Array.isArray(data.items) ? data.items : []); setTotal(Number(data.total || 0)); })
+        .catch(() => setItems([]));
+    }
     return () => ctrl.abort();
   }, [surveyId, siteId, page, pageSize]);
 
@@ -47,6 +53,7 @@ export default function AdminResponses() {
     return () => ctrl.abort();
   }, [surveyId, siteId]);
 
+  if (!tokenChecked) return <div style={{ padding: 24 }}>Carregando...</div>;
   return (
     <div style={{ padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

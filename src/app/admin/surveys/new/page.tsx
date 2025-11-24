@@ -6,6 +6,7 @@ import { validateSurveyInput } from "@/lib/validate";
 type QType = "text" | "textarea" | "select" | "radio";
 
 export default function NewSurveyPage() {
+  const [tokenChecked, setTokenChecked] = useState(false);
   const [siteId, setSiteId] = useState("");
   const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -58,7 +59,8 @@ export default function NewSurveyPage() {
     setError(null);
     const i = validateSurveyInput(siteId.trim(), title.trim(), questions);
     if (i.length) { setIssues(i); setError(["Corrija os campos abaixo:", ...i.map((x) => `${x.path}: ${x.message}`)].join("\n")); return; }
-    const res = await fetch("/api/admin/surveys", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ siteId: siteId.trim(), title: title.trim(), questions }) });
+    const token = typeof window !== "undefined" ? localStorage.getItem("hb_token") : null;
+    const res = await fetch("/api/admin/surveys", { method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ siteId: siteId.trim(), title: title.trim(), questions }) });
     if (!res.ok) {
       const isJson = res.headers.get("content-type")?.includes("application/json");
       const payload = isJson ? await res.json().catch(() => null) : null;
@@ -126,6 +128,12 @@ export default function NewSurveyPage() {
     );
   }
 
+  useEffect(() => {
+    const t = typeof window !== "undefined" ? localStorage.getItem("hb_token") : null;
+    setTokenChecked(true);
+    if (!t && typeof window !== "undefined") window.location.href = "/login";
+  }, [setTokenChecked]);
+  if (!tokenChecked) return <div style={{ padding: 24 }}>Carregando...</div>;
   return (
     <div style={{ padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
