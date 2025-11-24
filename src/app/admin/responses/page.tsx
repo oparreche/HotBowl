@@ -20,6 +20,11 @@ export default function AdminResponses() {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [detail, setDetail] = useState<SurveyDetail | null>(null);
+  const qLabelMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (detail?.questions || []).forEach((q) => { map[q.id] = q.prompt; });
+    return map;
+  }, [detail]);
 
   useEffect(() => {
     const t = typeof window !== "undefined" ? localStorage.getItem("hb_token") : null;
@@ -46,7 +51,8 @@ export default function AdminResponses() {
     const qs = new URLSearchParams();
     qs.set("surveyId", surveyId);
     if (siteId) qs.set("siteId", siteId);
-    fetch(`/api/admin/surveys/detail?${qs.toString()}`, { cache: "no-store", signal: ctrl.signal })
+    const t = typeof window !== "undefined" ? localStorage.getItem("hb_token") : null;
+    fetch(`/api/admin/surveys/detail?${qs.toString()}`, { cache: "no-store", signal: ctrl.signal, headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}) } })
       .then(async (r) => (r.ok && r.headers.get("content-type")?.includes("application/json")) ? r.json() : null)
       .then((d: SurveyDetail | null) => setDetail(d))
       .catch(() => setDetail(null));
@@ -96,8 +102,8 @@ export default function AdminResponses() {
                 <span style={{ fontSize: 12, padding: "4px 8px", borderRadius: 999, background: "#f2f4f7", color: "#667085" }}>{r.siteId}</span>
               </div>
               <div style={{ marginTop: 12, display: "grid", gap: 12 }}>
-                {(detail?.questions || []).map((q) => (
-                  <PrettyAnswer key={q.id} prompt={q.prompt} value={r.answers[q.id]} />
+                {Object.entries(r.answers || {}).map(([k, v]) => (
+                  <PrettyAnswer key={k} prompt={qLabelMap[k] || String(k)} value={v as unknown} />
                 ))}
               </div>
               <div style={{ fontSize: 12, color: "#667085", marginTop: 10 }}>UA: {r.userAgent}</div>
