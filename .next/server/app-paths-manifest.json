@@ -1,4 +1,9 @@
 {
-  "/admin/surveys/new/page": "app/admin/surveys/new/page.js",
-  "/admin/surveys/page": "app/admin/surveys/page.js"
+  "/page": "app/page.js",
+  "/admin/surveys/page": "app/admin/surveys/page.js",
+  "/api/admin/surveys/route": "app/api/admin/surveys/route.js",
+  "/admin/responses/page": "app/admin/responses/page.js",
+  "/api/admin/responses/route": "app/api/admin/responses/route.js",
+  "/api/admin/surveys/detail/route": "app/api/admin/surveys/detail/route.js",
+  "/admin/surveys/new/page": "app/admin/surveys/new/page.js"
 }
