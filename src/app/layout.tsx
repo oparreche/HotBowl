@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import React from "react";
 
 export const metadata: Metadata = {
-  title: "HotBowl Surveys",
+  title: "HotBowl SurveysSSSSS",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
